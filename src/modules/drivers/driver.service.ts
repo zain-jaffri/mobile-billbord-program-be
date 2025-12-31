@@ -254,8 +254,12 @@ export class DriverService {
       if (!vehicle) {
         return [];
       }
+      const resolvedDriverId = vehicle.getDataValue("driverId");
+      if (!resolvedDriverId) {
+        return [];
+      }
       return this.models.Driver.findAll({
-        where: { driverId: vehicle.driverId },
+        where: { driverId: resolvedDriverId },
         order: [["signupDate", "DESC"]],
         limit: 10,
       });
