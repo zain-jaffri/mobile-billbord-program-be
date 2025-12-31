@@ -371,6 +371,21 @@ export class DriverService {
     if (!driver) {
       throw notFound("Driver not found");
     }
-    await driver.destroy();
+    await sequelize.transaction(async (transaction) => {
+      const vehicles = await this.models.Vehicle.findAll({
+        where: { driverId },
+        transaction,
+      });
+      const vehicleIds = vehicles.map((vehicle) => vehicle.getDataValue("vehicleId"));
+
+      if (vehicleIds.length) {
+        await this.models.Deployment.destroy({ where: { vehicleId: vehicleIds }, transaction });
+        await this.models.OdometerReading.destroy({ where: { vehicleId: vehicleIds }, transaction });
+        await this.models.Vehicle.destroy({ where: { vehicleId: vehicleIds }, transaction });
+      }
+
+      await this.models.Payment.destroy({ where: { driverId }, transaction });
+      await this.models.Driver.destroy({ where: { driverId }, transaction });
+    });
   }
 }
