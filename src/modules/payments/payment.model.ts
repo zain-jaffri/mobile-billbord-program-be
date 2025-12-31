@@ -33,20 +33,20 @@ export type PaymentCreation = Optional<
 >;
 
 export class Payment extends Model<PaymentAttributes, PaymentCreation> implements PaymentAttributes {
-  public paymentId!: number;
-  public externalId!: string;
-  public externalTransactionId!: string | null;
-  public externalSource!: string;
-  public accountId!: string | null;
-  public driverId!: number | null;
-  public amount!: number;
-  public date!: Date;
-  public description!: string | null;
-  public notes!: string | null;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly Driver?: Driver;
+  declare paymentId: number;
+  declare externalId: string;
+  declare externalTransactionId: string | null;
+  declare externalSource: string;
+  declare accountId: string | null;
+  declare driverId: number | null;
+  declare amount: number;
+  declare date: Date;
+  declare description: string | null;
+  declare notes: string | null;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly Driver?: Driver;
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).

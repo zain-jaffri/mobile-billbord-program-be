@@ -20,15 +20,15 @@ export type OdometerCreation = Optional<
 >;
 
 export class OdometerReading extends Model<OdometerAttributes, OdometerCreation> implements OdometerAttributes {
-  public readingId!: number;
-  public vehicleId!: number;
-  public readingDate!: Date;
-  public mileage!: number;
-  public notes!: string | null;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly Vehicle?: Vehicle;
+  declare readingId: number;
+  declare vehicleId: number;
+  declare readingDate: Date;
+  declare mileage: number;
+  declare notes: string | null;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly Vehicle?: Vehicle;
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).

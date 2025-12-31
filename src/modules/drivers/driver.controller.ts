@@ -58,7 +58,10 @@ export class DriverController {
         : undefined,
     });
 
-    res.status(201).json({ driverId: result.driver.driverId, vehicleId: result.vehicle.vehicleId });
+    res.status(201).json({
+      driverId: result.driver.getDataValue("driverId"),
+      vehicleId: result.vehicle.getDataValue("vehicleId"),
+    });
   };
 
   public returningDriver = async (req: RequestWithUser, res: Response): Promise<void> => {

@@ -39,22 +39,22 @@ export type VehicleCreation = Optional<
 >;
 
 export class Vehicle extends Model<VehicleAttributes, VehicleCreation> implements VehicleAttributes {
-  public vehicleId!: number;
-  public driverId!: number | null;
-  public plateNumber!: string | null;
-  public state!: string | null;
-  public make!: string | null;
-  public model!: string | null;
-  public year!: number | null;
-  public vin!: string | null;
-  public color!: string | null;
-  public notes!: string | null;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly Driver?: Driver;
-  public readonly Deployments?: Deployment[];
-  public readonly OdometerReadings?: OdometerReading[];
+  declare vehicleId: number;
+  declare driverId: number | null;
+  declare plateNumber: string | null;
+  declare state: string | null;
+  declare make: string | null;
+  declare model: string | null;
+  declare year: number | null;
+  declare vin: string | null;
+  declare color: string | null;
+  declare notes: string | null;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly Driver?: Driver;
+  declare readonly Deployments?: Deployment[];
+  declare readonly OdometerReadings?: OdometerReading[];
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).

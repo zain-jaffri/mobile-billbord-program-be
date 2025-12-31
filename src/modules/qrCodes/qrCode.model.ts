@@ -22,17 +22,17 @@ export type QRCodeCreation = Optional<
 >;
 
 export class QRCode extends Model<QRCodeAttributes, QRCodeCreation> implements QRCodeAttributes {
-  public qrId!: number;
-  public externalId!: string | null;
-  public codeValue!: string;
-  public source!: string | null;
-  public lastSynced!: Date | null;
-  public notes!: string | null;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly Deployments?: Deployment[];
-  public readonly FormSubmissions?: FormSubmission[];
+  declare qrId: number;
+  declare externalId: string | null;
+  declare codeValue: string;
+  declare source: string | null;
+  declare lastSynced: Date | null;
+  declare notes: string | null;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly Deployments?: Deployment[];
+  declare readonly FormSubmissions?: FormSubmission[];
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).

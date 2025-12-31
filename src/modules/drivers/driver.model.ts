@@ -48,28 +48,28 @@ export type DriverCreation = Optional<
 >;
 
 export class Driver extends Model<DriverAttributes, DriverCreation> implements DriverAttributes {
-  public driverId!: number;
-  public firstName!: string;
-  public lastName!: string | null;
-  public licenseState!: string | null;
-  public licenseNumber!: string | null;
-  public signupDate!: Date;
-  public phone!: string | null;
-  public email!: string | null;
-  public preferredLanguage!: string | null;
-  public address!: string | null;
-  public city!: string | null;
-  public state!: string | null;
-  public zip!: string | null;
-  public notes!: string | null;
-  public referredBy!: number | null;
-  public isSignedContract!: boolean;
-  public isInactive!: boolean;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly Vehicles?: Vehicle[];
-  public readonly Payments?: Payment[];
+  declare driverId: number;
+  declare firstName: string;
+  declare lastName: string | null;
+  declare licenseState: string | null;
+  declare licenseNumber: string | null;
+  declare signupDate: Date;
+  declare phone: string | null;
+  declare email: string | null;
+  declare preferredLanguage: string | null;
+  declare address: string | null;
+  declare city: string | null;
+  declare state: string | null;
+  declare zip: string | null;
+  declare notes: string | null;
+  declare referredBy: number | null;
+  declare isSignedContract: boolean;
+  declare isInactive: boolean;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly Vehicles?: Vehicle[];
+  declare readonly Payments?: Payment[];
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).

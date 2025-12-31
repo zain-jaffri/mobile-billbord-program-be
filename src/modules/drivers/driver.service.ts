@@ -36,15 +36,17 @@ export class DriverService {
     // Single transaction ensures driver/vehicle/deployment/odometer are consistent.
     const result = await sequelize.transaction(async (transaction) => {
       const createdDriver = await this.models.Driver.create(driver, { transaction });
+      const driverId = createdDriver.getDataValue("driverId");
       const createdVehicle = await this.models.Vehicle.create(
-        { ...vehicle, driverId: createdDriver.driverId },
+        { ...vehicle, driverId },
         { transaction }
       );
+      const vehicleId = createdVehicle.getDataValue("vehicleId");
 
       if (deployment) {
         await this.deploymentService.createDeployment(
           {
-            vehicleId: createdVehicle.vehicleId,
+            vehicleId,
             qrId: deployment.qrId,
             actionType: "assign",
             actionDate: deployment.actionDate,
@@ -58,7 +60,7 @@ export class DriverService {
       if (odometer) {
         await this.models.OdometerReading.create(
           {
-            vehicleId: createdVehicle.vehicleId,
+            vehicleId,
             readingDate: odometer.readingDate,
             mileage: odometer.mileage,
             notes: odometer.notes ?? null,
@@ -290,23 +292,26 @@ export class DriverService {
     if (!driver) {
       throw notFound("Driver not found");
     }
+    const resolvedDriverId = driver.getDataValue("driverId");
 
-    const referredBy = driver.referredBy
-      ? await this.models.Driver.findByPk(driver.referredBy)
-      : null;
+    const referredById = driver.getDataValue("referredBy");
+    const referredBy =
+      referredById != null
+        ? await this.models.Driver.findByPk(referredById)
+        : null;
 
     const referredTo = await this.models.Driver.findAll({
-      where: { referredBy: driver.driverId },
+      where: { referredBy: resolvedDriverId },
       order: [["signupDate", "DESC"]],
     });
 
     const payments = await this.models.Payment.findAll({
-      where: { driverId: driver.driverId },
+      where: { driverId: resolvedDriverId },
       order: [["date", "DESC"]],
     });
 
     const vehicles = await this.models.Vehicle.findAll({
-      where: { driverId: driver.driverId },
+      where: { driverId: resolvedDriverId },
     });
 
     const vehicleResults: Array<Vehicle & {
@@ -317,8 +322,9 @@ export class DriverService {
 
     // Hydrate vehicle details with deployments, submissions, and odometer history.
     for (const vehicle of vehicles) {
+      const vehicleId = vehicle.getDataValue("vehicleId");
       const deployments = await this.models.Deployment.findAll({
-        where: { vehicleId: vehicle.vehicleId },
+        where: { vehicleId },
         order: [["actionDate", "DESC"]],
       });
 
@@ -332,12 +338,12 @@ export class DriverService {
       }
 
       const latestOdometer = await this.models.OdometerReading.findOne({
-        where: { vehicleId: vehicle.vehicleId },
+        where: { vehicleId },
         order: [["readingDate", "DESC"]],
       });
 
       const odometerHistory = await this.models.OdometerReading.findAll({
-        where: { vehicleId: vehicle.vehicleId },
+        where: { vehicleId },
         order: [["readingDate", "DESC"]],
         limit: 5,
       });

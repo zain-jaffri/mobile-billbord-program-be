@@ -24,17 +24,17 @@ export type DeploymentCreation = Optional<
 >;
 
 export class Deployment extends Model<DeploymentAttributes, DeploymentCreation> implements DeploymentAttributes {
-  public deploymentId!: number;
-  public vehicleId!: number;
-  public qrId!: number;
-  public actionType!: DeploymentAction;
-  public actionDate!: Date;
-  public notes!: string | null;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly Vehicle?: Vehicle;
-  public readonly QRCode?: QRCode;
+  declare deploymentId: number;
+  declare vehicleId: number;
+  declare qrId: number;
+  declare actionType: DeploymentAction;
+  declare actionDate: Date;
+  declare notes: string | null;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly Vehicle?: Vehicle;
+  declare readonly QRCode?: QRCode;
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).

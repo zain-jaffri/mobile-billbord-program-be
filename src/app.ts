@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { driverRouter } from "./modules/drivers/driver.routes";
 import { vehicleRouter } from "./modules/vehicles/vehicle.routes";
 import { deploymentRouter } from "./modules/deployments/deployment.routes";
@@ -16,6 +17,14 @@ import { authenticateFirebase } from "./shared/middleware/firebaseAuth";
 // App wiring lives here: middleware, health checks, and route mounting.
 export const createApp = () => {
   const app = express();
+
+  // Allow browser clients (Vite dev server) to call the API.
+  app.use(
+    cors({
+      origin: ["http://localhost:5173"],
+      credentials: true,
+    })
+  );
 
   // Parse JSON and form bodies before any route handlers.
   app.use(express.json());
@@ -42,9 +51,15 @@ export const createApp = () => {
     })
   );
 
+  // Handle preflight before auth to avoid 403 on OPTIONS.
+  app.options("*", cors());
+
   // Protect all business endpoints with Firebase auth.
   app.use((req, res, next) => {
     if (req.path === "/health/db") {
+      return next();
+    }
+    if (req.method === "OPTIONS") {
       return next();
     }
     return authenticateFirebase(req, res, next);

@@ -39,24 +39,24 @@ export type SubmissionCreation = Optional<
 >;
 
 export class FormSubmission extends Model<SubmissionAttributes, SubmissionCreation> implements SubmissionAttributes {
-  public submissionId!: number;
-  public qrId!: number | null;
-  public source!: string;
-  public externalId!: string | null;
-  public respondentId!: string | null;
-  public firstName!: string;
-  public lastName!: string | null;
-  public phone!: string;
-  public email!: string | null;
-  public beenAccident!: boolean;
-  public consentSms!: boolean;
-  public ipAddress!: string | null;
-  public notes!: string | null;
-  public submissionDate!: Date;
-  public createdBy!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly QRCode?: QRCode;
+  declare submissionId: number;
+  declare qrId: number | null;
+  declare source: string;
+  declare externalId: string | null;
+  declare respondentId: string | null;
+  declare firstName: string;
+  declare lastName: string | null;
+  declare phone: string;
+  declare email: string | null;
+  declare beenAccident: boolean;
+  declare consentSms: boolean;
+  declare ipAddress: string | null;
+  declare notes: string | null;
+  declare submissionDate: Date;
+  declare createdBy: string | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly QRCode?: QRCode;
 }
 
 // Field mapping mirrors the MariaDB schema (lengths, nullability, defaults).
