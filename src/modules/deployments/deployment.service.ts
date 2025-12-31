@@ -41,10 +41,10 @@ export class DeploymentService {
         [Op.and]: Sequelize.literal(`NOT EXISTS (
           SELECT 1
           FROM deployments d2
-          WHERE d2.vehicle_id = deployments.vehicle_id
-            AND d2.qr_id = deployments.qr_id
+          WHERE d2.vehicle_id = "Deployment"."vehicle_id"
+            AND d2.qr_id = "Deployment"."qr_id"
             AND d2.action_type = 'unassign'
-            AND d2.action_date > deployments.action_date
+            AND d2.action_date > "Deployment"."action_date"
         )`),
       },
       include: [{ model: this.models.QRCode }],
@@ -181,9 +181,9 @@ export class DeploymentService {
         [Op.and]: Sequelize.literal(`NOT EXISTS (
           SELECT 1
           FROM deployments d2
-          WHERE d2.qr_id = deployments.qr_id
+          WHERE d2.qr_id = "Deployment"."qr_id"
             AND d2.action_type = 'unassign'
-            AND d2.action_date > deployments.action_date
+            AND d2.action_date > "Deployment"."action_date"
         )`),
       },
       order: [["actionDate", "DESC"]],
