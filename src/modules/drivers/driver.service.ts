@@ -359,4 +359,12 @@ export class DriverService {
       vehicles: vehicleResults,
     };
   }
+
+  public async deleteDriver(driverId: number): Promise<void> {
+    const driver = await this.models.Driver.findByPk(driverId);
+    if (!driver) {
+      throw notFound("Driver not found");
+    }
+    await driver.destroy();
+  }
 }

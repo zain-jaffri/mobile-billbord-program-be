@@ -12,6 +12,9 @@ export type AppConfig = {
     database: string;
     ssl: boolean;
   };
+  firebase: {
+    projectId: string;
+  };
   zapier: {
     webhookUrl?: string;
   };
@@ -36,6 +39,9 @@ export const config: AppConfig = {
     password: required("DB_PASSWORD", process.env.DB_PASSWORD),
     database: required("DB_NAME", process.env.DB_NAME),
     ssl: process.env.DB_SSL === "true",
+  },
+  firebase: {
+    projectId: required("FIREBASE_PROJECT_ID", process.env.FIREBASE_PROJECT_ID),
   },
   zapier: {
     webhookUrl: process.env.ZAPIER_WEBHOOK_URL,

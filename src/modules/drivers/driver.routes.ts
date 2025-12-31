@@ -41,4 +41,5 @@ driverRouter.post("/returningdriver", validate(returningDriverSchema), asyncHand
 driverRouter.get("/drivers", asyncHandler(controller.listDrivers));
 driverRouter.get("/drivers/:driverId", validate(driverIdParamSchema), asyncHandler(controller.getDriverDetail));
 driverRouter.post("/drivers/:driverId/update", validate(updateDriverSchema), asyncHandler(controller.updateDriver));
+driverRouter.post("/drivers/:driverId/delete", validate(driverIdParamSchema), asyncHandler(controller.deleteDriver));
 driverRouter.get("/search/drivers", validate(searchDriversSchema), asyncHandler(controller.searchDrivers));

@@ -128,4 +128,9 @@ export class DriverController {
     });
     res.status(200).json(drivers);
   };
+
+  public deleteDriver = async (req: Request, res: Response): Promise<void> => {
+    await this.driverService.deleteDriver(Number(req.params.driverId));
+    res.status(204).send();
+  };
 }

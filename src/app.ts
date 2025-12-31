@@ -11,6 +11,7 @@ import { requestContext } from "./shared/middleware/requestContext";
 import { requestLogger } from "./shared/middleware/requestLogger";
 import { asyncHandler } from "./shared/middleware/asyncHandler";
 import { sequelize } from "./shared/sequelize";
+import { authenticateFirebase } from "./shared/middleware/firebaseAuth";
 
 // App wiring lives here: middleware, health checks, and route mounting.
 export const createApp = () => {
@@ -31,6 +32,23 @@ export const createApp = () => {
       res.status(200).json({ status: "ok" });
     })
   );
+
+  app.get(
+    "/auth/debug",
+    authenticateFirebase,
+    asyncHandler(async (req, res) => {
+      // Returns decoded Firebase user info for end-to-end auth verification.
+      res.status(200).json({ user: req.user ?? null });
+    })
+  );
+
+  // Protect all business endpoints with Firebase auth.
+  app.use((req, res, next) => {
+    if (req.path === "/health/db") {
+      return next();
+    }
+    return authenticateFirebase(req, res, next);
+  });
 
   // Domain routers.
   app.use(driverRouter);
