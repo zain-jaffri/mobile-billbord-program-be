@@ -13,6 +13,7 @@ import { requestLogger } from "./shared/middleware/requestLogger";
 import { asyncHandler } from "./shared/middleware/asyncHandler";
 import { sequelize } from "./shared/sequelize";
 import { authenticateFirebase } from "./shared/middleware/firebaseAuth";
+import type { RequestWithUser } from "./shared/middleware/requestContext";
 
 // App wiring lives here: middleware, health checks, and route mounting.
 export const createApp = () => {
@@ -45,7 +46,7 @@ export const createApp = () => {
   app.get(
     "/auth/debug",
     authenticateFirebase,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: RequestWithUser, res) => {
       // Returns decoded Firebase user info for end-to-end auth verification.
       res.status(200).json({ user: req.user ?? null });
     })
