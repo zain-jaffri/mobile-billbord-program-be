@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 
-export type RequestWithUser = Request & { user?: { username: string; uid?: string; email?: string } };
+export type RequestWithUser = Request & {
+  user?: {
+    username: string;
+    uid?: string;
+    email?: string;
+    role?: "driver" | "fieldWorker" | "admin" | null;
+  };
+};
 
 // Lightweight user context from headers (swap for real auth later).
 export const requestContext = (req: RequestWithUser, _res: Response, next: NextFunction) => {

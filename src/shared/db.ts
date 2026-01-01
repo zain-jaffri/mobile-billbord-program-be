@@ -6,6 +6,7 @@ import { QRCode } from "../modules/qrCodes/qrCode.model";
 import { OdometerReading } from "../modules/odometer/odometer.model";
 import { FormSubmission } from "../modules/submissions/submission.model";
 import { Payment } from "../modules/payments/payment.model";
+import { AppUser } from "./appUser.model";
 
 // Define all associations in one place to avoid cyclic imports.
 export const initDb = async (): Promise<void> => {
@@ -46,4 +47,5 @@ export const models = {
   OdometerReading,
   FormSubmission,
   Payment,
+  AppUser,
 };

@@ -52,6 +52,14 @@ export const createApp = () => {
     })
   );
 
+  app.get(
+    "/me",
+    authenticateFirebase,
+    asyncHandler(async (req: RequestWithUser, res) => {
+      res.status(200).json({ user: req.user ?? null });
+    })
+  );
+
   // Handle preflight before auth to avoid 403 on OPTIONS.
   app.options("*", cors());
 

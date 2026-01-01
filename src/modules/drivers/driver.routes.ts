@@ -5,6 +5,7 @@ import { DeploymentService } from "../deployments/deployment.service";
 import { models } from "../../shared/db";
 import { asyncHandler } from "../../shared/middleware/asyncHandler";
 import { validate } from "../../shared/middleware/validate";
+import { requireRole } from "../../shared/middleware/requireRole";
 import {
   createDriverSchema,
   returningDriverSchema,
@@ -36,10 +37,30 @@ const controller = new DriverController(driverService);
 export const driverRouter = Router();
 
 // Routes only define HTTP + validation. Business logic lives in services.
-driverRouter.post("/drivers", validate(createDriverSchema), asyncHandler(controller.createDriver));
+driverRouter.post(
+  "/drivers",
+  requireRole(["admin", "fieldWorker"]),
+  validate(createDriverSchema),
+  asyncHandler(controller.createDriver)
+);
 driverRouter.post("/returningdriver", validate(returningDriverSchema), asyncHandler(controller.returningDriver));
-driverRouter.get("/drivers", asyncHandler(controller.listDrivers));
-driverRouter.get("/drivers/:driverId", validate(driverIdParamSchema), asyncHandler(controller.getDriverDetail));
-driverRouter.post("/drivers/:driverId/update", validate(updateDriverSchema), asyncHandler(controller.updateDriver));
-driverRouter.post("/drivers/:driverId/delete", validate(driverIdParamSchema), asyncHandler(controller.deleteDriver));
+driverRouter.get("/drivers", requireRole(["admin"]), asyncHandler(controller.listDrivers));
+driverRouter.get(
+  "/drivers/:driverId",
+  requireRole(["admin", "fieldWorker"]),
+  validate(driverIdParamSchema),
+  asyncHandler(controller.getDriverDetail)
+);
+driverRouter.post(
+  "/drivers/:driverId/update",
+  requireRole(["admin", "fieldWorker"]),
+  validate(updateDriverSchema),
+  asyncHandler(controller.updateDriver)
+);
+driverRouter.post(
+  "/drivers/:driverId/delete",
+  requireRole(["admin"]),
+  validate(driverIdParamSchema),
+  asyncHandler(controller.deleteDriver)
+);
 driverRouter.get("/search/drivers", validate(searchDriversSchema), asyncHandler(controller.searchDrivers));

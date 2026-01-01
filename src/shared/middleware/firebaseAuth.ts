@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { config } from "../config";
 import type { RequestWithUser } from "./requestContext";
 import { forbidden } from "../errors";
+import { AppUser } from "../appUser.model";
 
 const jwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
@@ -16,6 +17,7 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
   }
 
   const token = authHeader.slice("Bearer ".length).trim();
+  console.log("[auth] firebase token:", token);
 
   try {
     const { payload } = await jwtVerify(token, jwks, {
@@ -23,10 +25,16 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
       audience: config.firebase.projectId,
     });
 
+    const firebaseUid = (payload.user_id as string) ?? payload.sub ?? "unknown";
+    const profile = firebaseUid
+      ? await AppUser.findOne({ where: { firebaseUid } })
+      : null;
+
     req.user = {
       username: (payload.email as string) ?? (payload.user_id as string) ?? payload.sub ?? "unknown",
-      uid: (payload.user_id as string) ?? payload.sub ?? undefined,
+      uid: firebaseUid,
       email: (payload.email as string) ?? undefined,
+      role: profile?.role ?? null,
     };
 
     return next();
