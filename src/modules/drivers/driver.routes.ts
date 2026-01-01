@@ -44,7 +44,7 @@ driverRouter.post(
   asyncHandler(controller.createDriver)
 );
 driverRouter.post("/returningdriver", validate(returningDriverSchema), asyncHandler(controller.returningDriver));
-driverRouter.get("/drivers", requireRole(["admin"]), asyncHandler(controller.listDrivers));
+driverRouter.get("/drivers", requireRole(["admin", "fieldWorker"]), asyncHandler(controller.listDrivers));
 driverRouter.get(
   "/drivers/:driverId",
   requireRole(["admin", "fieldWorker"]),
