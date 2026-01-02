@@ -35,7 +35,12 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
       uid: firebaseUid,
       email: (payload.email as string) ?? undefined,
       role: profile?.role ?? null,
+      driverId: profile?.driverId ?? null,
     };
+
+    if (req.user.role === "driver") {
+      console.log("[auth] driver login:", { uid: req.user.uid, driverId: req.user.driverId });
+    }
 
     return next();
   } catch (error) {

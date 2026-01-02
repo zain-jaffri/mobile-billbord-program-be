@@ -7,6 +7,8 @@ import { OdometerReading } from "../modules/odometer/odometer.model";
 import { FormSubmission } from "../modules/submissions/submission.model";
 import { Payment } from "../modules/payments/payment.model";
 import { AppUser } from "./appUser.model";
+import { MonthlySubmission } from "../modules/monthlySubmissions/monthlySubmission.model";
+import { MonthlySubmissionPhoto } from "../modules/monthlySubmissions/monthlySubmissionPhoto.model";
 
 // Define all associations in one place to avoid cyclic imports.
 export const initDb = async (): Promise<void> => {
@@ -34,6 +36,14 @@ export const initDb = async (): Promise<void> => {
   Driver.hasMany(Payment, { foreignKey: "driverId" });
   Payment.belongsTo(Driver, { foreignKey: "driverId" });
 
+  // Driver → Monthly submissions
+  Driver.hasMany(MonthlySubmission, { foreignKey: "driverId" });
+  MonthlySubmission.belongsTo(Driver, { foreignKey: "driverId" });
+
+  // Monthly submissions → Photos
+  MonthlySubmission.hasMany(MonthlySubmissionPhoto, { foreignKey: "submissionId" });
+  MonthlySubmissionPhoto.belongsTo(MonthlySubmission, { foreignKey: "submissionId" });
+
   // Validate DB connectivity early.
   await sequelize.authenticate();
 };
@@ -48,4 +58,6 @@ export const models = {
   FormSubmission,
   Payment,
   AppUser,
+  MonthlySubmission,
+  MonthlySubmissionPhoto,
 };

@@ -7,6 +7,7 @@ declare module "express-serve-static-core" {
       uid?: string;
       email?: string;
       role?: "driver" | "fieldWorker" | "admin" | null;
+      driverId?: number | null;
     };
   }
 }

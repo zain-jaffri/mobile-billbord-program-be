@@ -6,9 +6,12 @@ import { Deployment } from "../deployments/deployment.model";
 import { OdometerReading } from "../odometer/odometer.model";
 import { FormSubmission } from "../submissions/submission.model";
 import { Payment } from "../payments/payment.model";
+import { MonthlySubmission } from "../monthlySubmissions/monthlySubmission.model";
+import { MonthlySubmissionPhoto } from "../monthlySubmissions/monthlySubmissionPhoto.model";
 import { DeploymentService } from "../deployments/deployment.service";
 import { notFound } from "../../shared/errors";
 import { notifyZapierNewDriver } from "../../shared/utils/zapier";
+import { getCurrentPeriodStart } from "../../shared/utils/monthlyPeriod";
 
 // Business logic for driver flows and cross-domain orchestration.
 export class DriverService {
@@ -20,6 +23,8 @@ export class DriverService {
       OdometerReading: typeof OdometerReading;
       FormSubmission: typeof FormSubmission;
       Payment: typeof Payment;
+      MonthlySubmission: typeof MonthlySubmission;
+      MonthlySubmissionPhoto: typeof MonthlySubmissionPhoto;
     },
     private readonly deploymentService: DeploymentService
   ) {}
@@ -229,12 +234,15 @@ export class DriverService {
     }
   }
 
-  public async listDriversWithActiveQrCounts(): Promise<Array<Driver & { activeQrCount: number }>> {
+  public async listDriversWithActiveQrCounts(): Promise<
+    Array<Record<string, unknown> & { activeQrCount: number; missingMonthlySubmission: boolean }>
+  > {
     const drivers = await this.models.Driver.findAll({
       order: [["signupDate", "DESC"]],
     });
 
-    const results: Array<Driver & { activeQrCount: number }> = [];
+    const periodStart = getCurrentPeriodStart();
+    const results: Array<Record<string, unknown> & { activeQrCount: number; missingMonthlySubmission: boolean }> = [];
     for (const driver of drivers) {
       const vehicles = await this.models.Vehicle.findAll({ where: { driverId: driver.driverId } });
       let activeCount = 0;
@@ -242,7 +250,17 @@ export class DriverService {
         const active = await this.deploymentService.listActiveForVehicle(vehicle.vehicleId);
         activeCount += active.length;
       }
-      results.push(Object.assign(driver, { activeQrCount: activeCount }));
+      const submission = await this.models.MonthlySubmission.findOne({
+        where: { driverId: driver.driverId, periodStart },
+      });
+      const photoCount = submission
+        ? await this.models.MonthlySubmissionPhoto.count({
+            where: { submissionId: submission.submissionId },
+          })
+        : 0;
+      const missingMonthlySubmission = !submission || photoCount < 5;
+      const plainDriver = driver.get({ plain: true }) as Record<string, unknown>;
+      results.push({ ...plainDriver, activeQrCount: activeCount, missingMonthlySubmission });
     }
 
     return results;

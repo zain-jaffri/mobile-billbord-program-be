@@ -29,6 +29,8 @@ const driverService = new DriverService(
     OdometerReading: models.OdometerReading,
     FormSubmission: models.FormSubmission,
     Payment: models.Payment,
+    MonthlySubmission: models.MonthlySubmission,
+    MonthlySubmissionPhoto: models.MonthlySubmissionPhoto,
   },
   deploymentService
 );

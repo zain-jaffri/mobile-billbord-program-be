@@ -5,17 +5,22 @@ export type AppUserAttributes = {
   id: string;
   firebaseUid: string;
   email?: string | null;
+  driverId?: number | null;
   role?: "driver" | "fieldWorker" | "admin" | null;
   createdAt?: Date;
   updatedAt?: Date;
 };
 
-export type AppUserCreation = Optional<AppUserAttributes, "id" | "email" | "role" | "createdAt" | "updatedAt">;
+export type AppUserCreation = Optional<
+  AppUserAttributes,
+  "id" | "email" | "driverId" | "role" | "createdAt" | "updatedAt"
+>;
 
 export class AppUser extends Model<AppUserAttributes, AppUserCreation> implements AppUserAttributes {
   declare id: string;
   declare firebaseUid: string;
   declare email: string | null;
+  declare driverId: number | null;
   declare role: "driver" | "fieldWorker" | "admin" | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -35,6 +40,7 @@ AppUser.init(
       field: "firebase_uid",
     },
     email: { type: DataTypes.STRING(255), allowNull: true },
+    driverId: { type: DataTypes.INTEGER, allowNull: true, field: "driver_id" },
     role: {
       type: DataTypes.ENUM("driver", "fieldWorker", "admin"),
       allowNull: true,

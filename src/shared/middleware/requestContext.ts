@@ -6,6 +6,7 @@ export type RequestWithUser = Request & {
     uid?: string;
     email?: string;
     role?: "driver" | "fieldWorker" | "admin" | null;
+    driverId?: number | null;
   };
 };
 

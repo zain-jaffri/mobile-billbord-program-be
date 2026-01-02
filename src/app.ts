@@ -7,6 +7,7 @@ import { qrCodeRouter } from "./modules/qrCodes/qrCode.routes";
 import { odometerRouter } from "./modules/odometer/odometer.routes";
 import { submissionRouter } from "./modules/submissions/submission.routes";
 import { paymentRouter } from "./modules/payments/payment.routes";
+import { monthlySubmissionRouter } from "./modules/monthlySubmissions/monthlySubmission.routes";
 import { errorHandler } from "./shared/middleware/errorHandler";
 import { requestContext } from "./shared/middleware/requestContext";
 import { requestLogger } from "./shared/middleware/requestLogger";
@@ -28,7 +29,7 @@ export const createApp = () => {
   );
 
   // Parse JSON and form bodies before any route handlers.
-  app.use(express.json());
+  app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true }));
   // Attach user context and per-request logging early.
   app.use(requestContext);
@@ -82,6 +83,7 @@ export const createApp = () => {
   app.use(odometerRouter);
   app.use(submissionRouter);
   app.use(paymentRouter);
+  app.use(monthlySubmissionRouter);
 
   // Centralized error handling goes last.
   app.use(errorHandler);

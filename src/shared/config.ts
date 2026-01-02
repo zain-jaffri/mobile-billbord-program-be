@@ -18,6 +18,11 @@ export type AppConfig = {
   zapier: {
     webhookUrl?: string;
   };
+  supabase: {
+    url: string;
+    serviceRoleKey: string;
+    storageBucket: string;
+  };
 };
 
 // Helper to enforce required env values at startup.
@@ -45,5 +50,13 @@ export const config: AppConfig = {
   },
   zapier: {
     webhookUrl: process.env.ZAPIER_WEBHOOK_URL,
+  },
+  supabase: {
+    url: required("SUPABASE_URL", process.env.SUPABASE_URL),
+    serviceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY),
+    storageBucket: required(
+      "SUPABASE_STORAGE_BUCKET",
+      process.env.SUPABASE_STORAGE_BUCKET || "driver-monthly-submission"
+    ),
   },
 };
