@@ -53,6 +53,12 @@ driverRouter.get(
   validate(driverIdParamSchema),
   asyncHandler(controller.getDriverDetail)
 );
+driverRouter.get(
+  "/drivers/:driverId/submissions",
+  requireRole(["admin", "fieldWorker"]),
+  validate(driverIdParamSchema),
+  asyncHandler(controller.listDriverSubmissions)
+);
 driverRouter.post(
   "/drivers/:driverId/update",
   requireRole(["admin", "fieldWorker"]),

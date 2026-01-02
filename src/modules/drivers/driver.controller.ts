@@ -132,6 +132,12 @@ export class DriverController {
     res.status(200).json(drivers);
   };
 
+  public listDriverSubmissions = async (req: Request, res: Response): Promise<void> => {
+    const driverId = Number(req.params.driverId);
+    const submissions = await this.driverService.listDriverMonthlySubmissions(driverId);
+    res.status(200).json(submissions);
+  };
+
   public deleteDriver = async (req: Request, res: Response): Promise<void> => {
     await this.driverService.deleteDriver(Number(req.params.driverId));
     res.status(204).send();

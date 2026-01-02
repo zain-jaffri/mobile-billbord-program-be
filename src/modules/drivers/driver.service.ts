@@ -12,6 +12,7 @@ import { DeploymentService } from "../deployments/deployment.service";
 import { notFound } from "../../shared/errors";
 import { notifyZapierNewDriver } from "../../shared/utils/zapier";
 import { getCurrentPeriodStart } from "../../shared/utils/monthlyPeriod";
+import { buildSupabasePublicUrl } from "../../shared/utils/supabaseStorage";
 
 // Business logic for driver flows and cross-domain orchestration.
 export class DriverService {
@@ -296,6 +297,48 @@ export class DriverService {
       },
       order: [["signupDate", "DESC"]],
       limit: 10,
+    });
+  }
+
+  public async listDriverMonthlySubmissions(driverId: number): Promise<
+    Array<{
+      submissionId: number;
+      periodStart: Date;
+      odometerMileage: number;
+      odometerDate: Date;
+      submittedAt: Date | null;
+      photos: Array<{
+        photoId: number;
+        photoType: string;
+        storagePath: string;
+        publicUrl: string;
+        uploadedAt: Date | null;
+      }>;
+    }>
+  > {
+    const submissions = await this.models.MonthlySubmission.findAll({
+      where: { driverId },
+      order: [["periodStart", "DESC"]],
+      include: [this.models.MonthlySubmissionPhoto],
+    });
+
+    return submissions.map((submission) => {
+      const photos =
+        (submission.get("MonthlySubmissionPhotos") as MonthlySubmissionPhoto[] | undefined) ?? [];
+      return {
+        submissionId: submission.submissionId,
+        periodStart: submission.periodStart,
+        odometerMileage: submission.odometerMileage,
+        odometerDate: submission.odometerDate,
+        submittedAt: submission.submittedAt ?? null,
+        photos: photos.map((photo) => ({
+          photoId: photo.photoId,
+          photoType: photo.photoType,
+          storagePath: photo.storagePath,
+          publicUrl: buildSupabasePublicUrl(photo.storagePath),
+          uploadedAt: photo.uploadedAt ?? null,
+        })),
+      };
     });
   }
 

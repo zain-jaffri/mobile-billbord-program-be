@@ -21,3 +21,8 @@ export const uploadToSupabaseStorage = async (path: string, base64: string, cont
 
   return path;
 };
+
+export const buildSupabasePublicUrl = (path: string) => {
+  const safePath = encodeURI(path);
+  return `${config.supabase.url}/storage/v1/object/public/${config.supabase.storageBucket}/${safePath}`;
+};
