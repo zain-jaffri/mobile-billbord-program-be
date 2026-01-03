@@ -24,3 +24,9 @@ export const monthlySubmissionPhotoSchema = z.object({
       .min(1),
   }),
 });
+
+export const monthlySubmissionIdParamSchema = z.object({
+  params: z.object({
+    submissionId: z.string().regex(/^\d+$/),
+  }),
+});

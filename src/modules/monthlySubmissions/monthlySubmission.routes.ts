@@ -5,7 +5,11 @@ import { models } from "../../shared/db";
 import { asyncHandler } from "../../shared/middleware/asyncHandler";
 import { requireRole } from "../../shared/middleware/requireRole";
 import { validate } from "../../shared/middleware/validate";
-import { createMonthlySubmissionSchema, monthlySubmissionPhotoSchema } from "./monthlySubmission.dto";
+import {
+  createMonthlySubmissionSchema,
+  monthlySubmissionPhotoSchema,
+  monthlySubmissionIdParamSchema,
+} from "./monthlySubmission.dto";
 
 const service = new MonthlySubmissionService({
   MonthlySubmission: models.MonthlySubmission,
@@ -33,4 +37,18 @@ monthlySubmissionRouter.post(
   requireRole(["driver"]),
   validate(monthlySubmissionPhotoSchema),
   asyncHandler(controller.uploadPhotos)
+);
+
+monthlySubmissionRouter.post(
+  "/monthly-submissions/:submissionId/approve",
+  requireRole(["admin"]),
+  validate(monthlySubmissionIdParamSchema),
+  asyncHandler(controller.approveSubmission)
+);
+
+monthlySubmissionRouter.post(
+  "/monthly-submissions/:submissionId/unapprove",
+  requireRole(["admin"]),
+  validate(monthlySubmissionIdParamSchema),
+  asyncHandler(controller.unapproveSubmission)
 );

@@ -53,4 +53,22 @@ export class MonthlySubmissionController {
 
     res.status(200).json({ status: "ok" });
   };
+
+  public approveSubmission = async (req: RequestWithUser, res: Response): Promise<void> => {
+    const submissionId = Number(req.params.submissionId);
+    const submission = await this.service.updateSubmissionStatus(submissionId, "approved");
+    res.status(200).json({
+      submissionId: submission.submissionId,
+      submissionStatus: submission.submissionStatus,
+    });
+  };
+
+  public unapproveSubmission = async (req: RequestWithUser, res: Response): Promise<void> => {
+    const submissionId = Number(req.params.submissionId);
+    const submission = await this.service.updateSubmissionStatus(submissionId, "inReview");
+    res.status(200).json({
+      submissionId: submission.submissionId,
+      submissionStatus: submission.submissionStatus,
+    });
+  };
 }

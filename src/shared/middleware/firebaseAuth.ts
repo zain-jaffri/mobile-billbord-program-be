@@ -26,15 +26,45 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
     });
 
     const firebaseUid = (payload.user_id as string) ?? payload.sub ?? "unknown";
-    const profile = firebaseUid
-      ? await AppUser.findOne({ where: { firebaseUid } })
-      : null;
+    const email = (payload.email as string | undefined)?.toLowerCase();
+
+    const adminEmails = new Set(["jacob@maximuslaw.com", "maamoonzsalman@gmail.com"]);
+    const roleFromEmail = () => {
+      if (email && adminEmails.has(email)) return "admin";
+      if (email && email.endsWith("@maximuslaw.com")) return "fieldWorker";
+      return "driver";
+    };
+
+    const derivedRole = roleFromEmail();
+    let profile = firebaseUid ? await AppUser.findOne({ where: { firebaseUid } }) : null;
+    if (firebaseUid && firebaseUid !== "unknown") {
+      if (profile) {
+        const updates: { email?: string | null; role?: "driver" | "fieldWorker" | "admin" } = {};
+        if (email && profile.email !== email) {
+          updates.email = email;
+        }
+        if (profile.role !== derivedRole) {
+          updates.role = derivedRole;
+        }
+        if (Object.keys(updates).length > 0) {
+          await profile.update(updates);
+          profile = await AppUser.findOne({ where: { firebaseUid } });
+        }
+      } else {
+        profile = await AppUser.create({
+          firebaseUid,
+          email: email ?? null,
+          role: derivedRole,
+          driverId: null,
+        });
+      }
+    }
 
     req.user = {
-      username: (payload.email as string) ?? (payload.user_id as string) ?? payload.sub ?? "unknown",
+      username: email ?? (payload.user_id as string) ?? payload.sub ?? "unknown",
       uid: firebaseUid,
-      email: (payload.email as string) ?? undefined,
-      role: profile?.role ?? null,
+      email: email ?? undefined,
+      role: (profile?.role as "driver" | "fieldWorker" | "admin" | null) ?? derivedRole,
       driverId: profile?.driverId ?? null,
     };
 

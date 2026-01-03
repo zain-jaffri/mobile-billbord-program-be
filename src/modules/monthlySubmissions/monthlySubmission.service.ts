@@ -12,6 +12,7 @@ const REQUIRED_PHOTO_TYPES: SubmissionPhotoType[] = [
   "right",
   "odometer",
 ];
+const DEFAULT_SUBMISSION_STATUS = "inReview";
 
 export class MonthlySubmissionService {
   constructor(
@@ -31,6 +32,8 @@ export class MonthlySubmissionService {
       return {
         periodStart,
         submissionId: null,
+        submissionStatus: "noSubmission",
+        paidStatus: null,
         photosRequired: REQUIRED_PHOTO_TYPES,
         photosUploaded: [],
         isComplete: false,
@@ -52,6 +55,8 @@ export class MonthlySubmissionService {
       submissionId: submission.submissionId,
       odometerMileage: submission.odometerMileage,
       odometerDate: submission.odometerDate,
+      submissionStatus: submission.submissionStatus,
+      paidStatus: submission.paidStatus,
       photosRequired: REQUIRED_PHOTO_TYPES,
       photosUploaded: photos.map((photo) => ({
         photoType: photo.photoType,
@@ -76,6 +81,7 @@ export class MonthlySubmissionService {
       await existing.update({
         odometerMileage: payload.odometerMileage,
         odometerDate: payload.odometerDate,
+        submissionStatus: DEFAULT_SUBMISSION_STATUS,
         submittedAt: new Date(),
         createdBy: payload.createdBy ?? null,
       });
@@ -87,6 +93,7 @@ export class MonthlySubmissionService {
       periodStart,
       odometerMileage: payload.odometerMileage,
       odometerDate: payload.odometerDate,
+      submissionStatus: DEFAULT_SUBMISSION_STATUS,
       submittedAt: new Date(),
       createdBy: payload.createdBy ?? null,
     });
@@ -138,5 +145,15 @@ export class MonthlySubmissionService {
         );
       }
     }
+  }
+
+  public async updateSubmissionStatus(submissionId: number, submissionStatus: "inReview" | "approved") {
+    const submission = await this.models.MonthlySubmission.findByPk(submissionId);
+    if (!submission) {
+      throw notFound("Monthly submission not found");
+    }
+
+    await submission.update({ submissionStatus });
+    return submission;
   }
 }

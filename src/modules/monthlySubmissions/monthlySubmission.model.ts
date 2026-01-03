@@ -8,6 +8,8 @@ export type MonthlySubmissionAttributes = {
   periodStart: Date;
   odometerMileage: number;
   odometerDate: Date;
+  submissionStatus: "inReview" | "approved";
+  paidStatus: "unpaid" | "paid";
   submittedAt?: Date;
   createdBy?: string | null;
   createdAt?: Date;
@@ -16,7 +18,13 @@ export type MonthlySubmissionAttributes = {
 
 export type MonthlySubmissionCreation = Optional<
   MonthlySubmissionAttributes,
-  "submissionId" | "submittedAt" | "createdBy" | "createdAt" | "updatedAt"
+  | "submissionId"
+  | "submissionStatus"
+  | "paidStatus"
+  | "submittedAt"
+  | "createdBy"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 export class MonthlySubmission
@@ -28,6 +36,8 @@ export class MonthlySubmission
   declare periodStart: Date;
   declare odometerMileage: number;
   declare odometerDate: Date;
+  declare submissionStatus: "inReview" | "approved";
+  declare paidStatus: "unpaid" | "paid";
   declare submittedAt: Date;
   declare createdBy: string | null;
   declare readonly createdAt: Date;
@@ -47,6 +57,18 @@ MonthlySubmission.init(
     periodStart: { type: DataTypes.DATEONLY, allowNull: false, field: "period_start" },
     odometerMileage: { type: DataTypes.INTEGER, allowNull: false, field: "odometer_mileage" },
     odometerDate: { type: DataTypes.DATEONLY, allowNull: false, field: "odometer_date" },
+    submissionStatus: {
+      type: DataTypes.ENUM("inReview", "approved"),
+      allowNull: false,
+      defaultValue: "inReview",
+      field: "submission_status",
+    },
+    paidStatus: {
+      type: DataTypes.ENUM("unpaid", "paid"),
+      allowNull: false,
+      defaultValue: "unpaid",
+      field: "paid_status",
+    },
     submittedAt: { type: DataTypes.DATE, allowNull: true, field: "submitted_at" },
     createdBy: { type: DataTypes.STRING(255), allowNull: true, field: "created_by" },
   },

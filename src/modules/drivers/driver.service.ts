@@ -236,14 +236,31 @@ export class DriverService {
   }
 
   public async listDriversWithActiveQrCounts(): Promise<
-    Array<Record<string, unknown> & { activeQrCount: number; missingMonthlySubmission: boolean }>
+    Array<
+      Record<string, unknown> & {
+        activeQrCount: number;
+        missingMonthlySubmission: boolean;
+        hasInReviewSubmission: boolean;
+      }
+    >
   > {
     const drivers = await this.models.Driver.findAll({
       order: [["signupDate", "DESC"]],
     });
 
-    const periodStart = getCurrentPeriodStart();
-    const results: Array<Record<string, unknown> & { activeQrCount: number; missingMonthlySubmission: boolean }> = [];
+    const currentPeriodStart = getCurrentPeriodStart();
+    const currentYear = currentPeriodStart.getUTCFullYear();
+    const currentMonth = currentPeriodStart.getUTCMonth() + 1;
+    const previousYearMonth = currentMonth === 1
+      ? { year: currentYear - 1, month: 12 }
+      : { year: currentYear, month: currentMonth - 1 };
+    const results: Array<
+      Record<string, unknown> & {
+        activeQrCount: number;
+        missingMonthlySubmission: boolean;
+        hasInReviewSubmission: boolean;
+      }
+    > = [];
     for (const driver of drivers) {
       const vehicles = await this.models.Vehicle.findAll({ where: { driverId: driver.driverId } });
       let activeCount = 0;
@@ -251,17 +268,104 @@ export class DriverService {
         const active = await this.deploymentService.listActiveForVehicle(vehicle.vehicleId);
         activeCount += active.length;
       }
-      const submission = await this.models.MonthlySubmission.findOne({
-        where: { driverId: driver.driverId, periodStart },
-      });
-      const photoCount = submission
-        ? await this.models.MonthlySubmissionPhoto.count({
-            where: { submissionId: submission.submissionId },
+      const signupDate = new Date(driver.signupDate);
+      const signupYear = signupDate.getUTCFullYear();
+      const signupMonth = signupDate.getUTCMonth() + 1;
+      const startYearMonth = signupMonth === 1
+        ? { year: signupYear - 1, month: 12 }
+        : { year: signupYear, month: signupMonth - 1 };
+
+      const formatPeriodKey = (year: number, month: number) =>
+        `${year}-${String(month).padStart(2, "0")}-01`;
+
+      const periods: string[] = [];
+      let yearCursor = startYearMonth.year;
+      let monthCursor = startYearMonth.month;
+      while (
+        yearCursor < previousYearMonth.year ||
+        (yearCursor === previousYearMonth.year && monthCursor <= previousYearMonth.month)
+      ) {
+        periods.push(formatPeriodKey(yearCursor, monthCursor));
+        monthCursor += 1;
+        if (monthCursor > 12) {
+          monthCursor = 1;
+          yearCursor += 1;
+        }
+      }
+
+      const startPeriodKey = periods[0] ?? null;
+      const endPeriodKey = periods[periods.length - 1] ?? null;
+
+      const submissions = startPeriodKey && endPeriodKey
+        ? await this.models.MonthlySubmission.findAll({
+            where: {
+              driverId: driver.driverId,
+              periodStart: { [Op.between]: [startPeriodKey, endPeriodKey] },
+            },
           })
-        : 0;
-      const missingMonthlySubmission = !submission || photoCount < 5;
+        : [];
+
+      const submissionIds = submissions.map((submission) => submission.submissionId);
+      const photos = submissionIds.length
+        ? await this.models.MonthlySubmissionPhoto.findAll({
+            where: { submissionId: submissionIds },
+          })
+        : [];
+
+      const photosBySubmission = new Map<number, MonthlySubmissionPhoto[]>();
+      for (const photo of photos) {
+        const list = photosBySubmission.get(photo.submissionId) ?? [];
+        list.push(photo);
+        photosBySubmission.set(photo.submissionId, list);
+      }
+
+      const submissionsByPeriod = new Map<
+        string,
+        { isComplete: boolean; submissionStatus: "inReview" | "approved" }
+      >();
+
+      const normalizePeriodKey = (value: Date | string): string => {
+        if (typeof value === "string") {
+          return value.slice(0, 10);
+        }
+        const year = value.getUTCFullYear();
+        const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(value.getUTCDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+      for (const submission of submissions) {
+        const submissionPhotos = photosBySubmission.get(submission.submissionId) ?? [];
+        const uploadedTypes = new Set(submissionPhotos.map((photo) => photo.photoType));
+        const hasAllPhotos = ["front", "back", "left", "right", "odometer"].every((type) =>
+          uploadedTypes.has(type)
+        );
+        const hasOdometer = submission.odometerMileage > 0 && Boolean(submission.odometerDate);
+        const periodKey = normalizePeriodKey(submission.periodStart);
+        submissionsByPeriod.set(periodKey, {
+          isComplete: hasAllPhotos && hasOdometer,
+          submissionStatus: submission.submissionStatus,
+        });
+      }
+
+      let missingMonthlySubmission = false;
+      let hasInReviewSubmission = false;
+      for (const periodKey of periods) {
+        const record = submissionsByPeriod.get(periodKey);
+        if (!record || !record.isComplete) {
+          missingMonthlySubmission = true;
+          break;
+        }
+        if (record.submissionStatus === "inReview") {
+          hasInReviewSubmission = true;
+        }
+      }
       const plainDriver = driver.get({ plain: true }) as Record<string, unknown>;
-      results.push({ ...plainDriver, activeQrCount: activeCount, missingMonthlySubmission });
+      results.push({
+        ...plainDriver,
+        activeQrCount: activeCount,
+        missingMonthlySubmission,
+        hasInReviewSubmission,
+      });
     }
 
     return results;
@@ -307,6 +411,8 @@ export class DriverService {
       odometerMileage: number;
       odometerDate: Date;
       submittedAt: Date | null;
+      submissionStatus: "inReview" | "approved";
+      paidStatus: "unpaid" | "paid";
       photos: Array<{
         photoId: number;
         photoType: string;
@@ -331,6 +437,8 @@ export class DriverService {
         odometerMileage: submission.odometerMileage,
         odometerDate: submission.odometerDate,
         submittedAt: submission.submittedAt ?? null,
+        submissionStatus: submission.submissionStatus,
+        paidStatus: submission.paidStatus,
         photos: photos.map((photo) => ({
           photoId: photo.photoId,
           photoType: photo.photoType,
