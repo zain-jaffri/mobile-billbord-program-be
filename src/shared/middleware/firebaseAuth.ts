@@ -74,6 +74,7 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
 
     return next();
   } catch (error) {
+    console.error("[auth] firebase verify failed:", error);
     return next(forbidden("Invalid Firebase token"));
   }
 };

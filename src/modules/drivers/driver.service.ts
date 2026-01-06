@@ -10,7 +10,7 @@ import { MonthlySubmission } from "../monthlySubmissions/monthlySubmission.model
 import { MonthlySubmissionPhoto } from "../monthlySubmissions/monthlySubmissionPhoto.model";
 import { DeploymentService } from "../deployments/deployment.service";
 import { notFound } from "../../shared/errors";
-import { notifyZapierNewDriver } from "../../shared/utils/zapier";
+import { sendDocusignEnvelope, DocuSignError } from "../../shared/utils/docusign";
 import { getCurrentPeriodStart } from "../../shared/utils/monthlyPeriod";
 import { buildSupabasePublicUrl } from "../../shared/utils/supabaseStorage";
 
@@ -80,12 +80,55 @@ export class DriverService {
     });
 
     if (result.driver.email) {
-      // Zapier is only called after the transaction commits successfully.
-      await notifyZapierNewDriver({
-        name: `${result.driver.firstName} ${result.driver.lastName ?? ""}`.trim(),
-        email: result.driver.email,
-        driverId: result.driver.driverId,
-      });
+      const name = `${result.driver.firstName} ${result.driver.lastName ?? ""}`.trim();
+      try {
+        await sendDocusignEnvelope({
+          name,
+          email: result.driver.email,
+          driverId: result.driver.driverId,
+        });
+      } catch (error) {
+        if (error instanceof DocuSignError) {
+          const category =
+            error.code === "consent_required"
+              ? "consent_required"
+              : error.code === "invalid_grant" || error.code === "unauthorized_client"
+                ? "invalid_credentials"
+                : error.status === 401
+                  ? "unauthorized"
+                  : error.status === 403
+                    ? "forbidden"
+                    : error.status === 404
+                      ? "not_found"
+                      : error.status === 429
+                        ? "rate_limited"
+                        : error.status === 400
+                          ? "bad_request"
+                          : "unknown";
+          console.error("[docusign] send failed", {
+            category,
+            driverId: result.driver.driverId,
+            email: result.driver.email,
+            name,
+            status: error.status,
+            code: error.code,
+            traceToken: error.traceToken,
+            details: error.details,
+            cors: "not_applicable_server_to_server",
+          });
+        } else {
+          console.error("[docusign] send failed", {
+            driverId: result.driver.driverId,
+            email: result.driver.email,
+            name,
+            error:
+              error instanceof Error
+                ? { name: error.name, message: error.message, stack: error.stack }
+                : error,
+            cors: "not_applicable_server_to_server",
+          });
+        }
+      }
     }
 
     return result;

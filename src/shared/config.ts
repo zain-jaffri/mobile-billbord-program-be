@@ -15,8 +15,15 @@ export type AppConfig = {
   firebase: {
     projectId: string;
   };
-  zapier: {
-    webhookUrl?: string;
+  docusign: {
+    clientId: string;
+    userId: string;
+    accountId: string;
+    apiBasePath: string;
+    oauthBasePath: string;
+    templateId: string;
+    signerRoleName: string;
+    privateKey: string;
   };
   supabase: {
     url: string;
@@ -48,8 +55,15 @@ export const config: AppConfig = {
   firebase: {
     projectId: required("FIREBASE_PROJECT_ID", process.env.FIREBASE_PROJECT_ID),
   },
-  zapier: {
-    webhookUrl: process.env.ZAPIER_WEBHOOK_URL,
+  docusign: {
+    clientId: required("DOCUSIGN_CLIENT_ID", process.env.DOCUSIGN_CLIENT_ID),
+    userId: required("DOCUSIGN_USER_ID", process.env.DOCUSIGN_USER_ID),
+    accountId: required("DOCUSIGN_ACCOUNT_ID", process.env.DOCUSIGN_ACCOUNT_ID),
+    apiBasePath: required("DOCUSIGN_API_BASE_PATH", process.env.DOCUSIGN_API_BASE_PATH),
+    oauthBasePath: required("DOCUSIGN_OAUTH_BASE_PATH", process.env.DOCUSIGN_OAUTH_BASE_PATH),
+    templateId: required("DOCUSIGN_TEMPLATE_ID", process.env.DOCUSIGN_TEMPLATE_ID),
+    signerRoleName: required("DOCUSIGN_SIGNER_ROLE_NAME", process.env.DOCUSIGN_SIGNER_ROLE_NAME),
+    privateKey: required("DOCUSIGN_PRIVATE_KEY", process.env.DOCUSIGN_PRIVATE_KEY),
   },
   supabase: {
     url: required("SUPABASE_URL", process.env.SUPABASE_URL),
