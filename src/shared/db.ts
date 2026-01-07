@@ -9,6 +9,9 @@ import { Payment } from "../modules/payments/payment.model";
 import { AppUser } from "./appUser.model";
 import { MonthlySubmission } from "../modules/monthlySubmissions/monthlySubmission.model";
 import { MonthlySubmissionPhoto } from "../modules/monthlySubmissions/monthlySubmissionPhoto.model";
+import { DriverResponseCount } from "../modules/responseCounts/driverResponseCount.model";
+import { TallyWebhookEvent } from "../modules/webhooks/tallyWebhookEvent.model";
+import { DriverContract } from "../modules/contracts/driverContract.model";
 
 // Define all associations in one place to avoid cyclic imports.
 export const initDb = async (): Promise<void> => {
@@ -40,6 +43,14 @@ export const initDb = async (): Promise<void> => {
   Driver.hasMany(MonthlySubmission, { foreignKey: "driverId" });
   MonthlySubmission.belongsTo(Driver, { foreignKey: "driverId" });
 
+  // Driver → Response counts
+  Driver.hasMany(DriverResponseCount, { foreignKey: "driverId" });
+  DriverResponseCount.belongsTo(Driver, { foreignKey: "driverId" });
+
+  // Driver → Contracts
+  Driver.hasMany(DriverContract, { foreignKey: "driverId" });
+  DriverContract.belongsTo(Driver, { foreignKey: "driverId" });
+
   // Monthly submissions → Photos
   MonthlySubmission.hasMany(MonthlySubmissionPhoto, { foreignKey: "submissionId" });
   MonthlySubmissionPhoto.belongsTo(MonthlySubmission, { foreignKey: "submissionId" });
@@ -60,4 +71,7 @@ export const models = {
   AppUser,
   MonthlySubmission,
   MonthlySubmissionPhoto,
+  DriverResponseCount,
+  TallyWebhookEvent,
+  DriverContract,
 };

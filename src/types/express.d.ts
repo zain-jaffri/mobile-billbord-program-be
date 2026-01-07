@@ -8,7 +8,9 @@ declare module "express-serve-static-core" {
       email?: string;
       role?: "driver" | "fieldWorker" | "admin" | null;
       driverId?: number | null;
+      mustChangePassword?: boolean;
     };
+    rawBody?: Buffer;
   }
 }
 

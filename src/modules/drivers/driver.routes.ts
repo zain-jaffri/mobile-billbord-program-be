@@ -31,6 +31,8 @@ const driverService = new DriverService(
     Payment: models.Payment,
     MonthlySubmission: models.MonthlySubmission,
     MonthlySubmissionPhoto: models.MonthlySubmissionPhoto,
+    DriverResponseCount: models.DriverResponseCount,
+    DriverContract: models.DriverContract,
   },
   deploymentService
 );

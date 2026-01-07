@@ -8,6 +8,8 @@ import { FormSubmission } from "../submissions/submission.model";
 import { Payment } from "../payments/payment.model";
 import { MonthlySubmission } from "../monthlySubmissions/monthlySubmission.model";
 import { MonthlySubmissionPhoto } from "../monthlySubmissions/monthlySubmissionPhoto.model";
+import { DriverResponseCount } from "../responseCounts/driverResponseCount.model";
+import { DriverContract } from "../contracts/driverContract.model";
 import { DeploymentService } from "../deployments/deployment.service";
 import { notFound } from "../../shared/errors";
 import { sendDocusignEnvelope, DocuSignError } from "../../shared/utils/docusign";
@@ -16,6 +18,8 @@ import { buildSupabasePublicUrl } from "../../shared/utils/supabaseStorage";
 
 // Business logic for driver flows and cross-domain orchestration.
 export class DriverService {
+  private responseCountsTableExists: boolean | null = null;
+
   constructor(
     private readonly models: {
       Driver: typeof Driver;
@@ -26,9 +30,42 @@ export class DriverService {
       Payment: typeof Payment;
       MonthlySubmission: typeof MonthlySubmission;
       MonthlySubmissionPhoto: typeof MonthlySubmissionPhoto;
+      DriverResponseCount: typeof DriverResponseCount;
+      DriverContract: typeof DriverContract;
     },
     private readonly deploymentService: DeploymentService
   ) {}
+
+  private async hasResponseCountsTable(): Promise<boolean> {
+    if (this.responseCountsTableExists !== null) {
+      return this.responseCountsTableExists;
+    }
+    try {
+      const table = this.models.DriverResponseCount.getTableName();
+      const tableName = typeof table === "string" ? table : table.tableName;
+      const tables = await sequelize.getQueryInterface().showAllTables();
+      const exists = tables.some((entry) => {
+        if (typeof entry === "string") {
+          return entry === tableName || entry.endsWith(`.${tableName}`);
+        }
+        if (typeof entry === "object" && entry !== null && "tableName" in entry) {
+          return (entry as { tableName?: string }).tableName === tableName;
+        }
+        return false;
+      });
+      this.responseCountsTableExists = exists;
+      if (!exists) {
+        console.warn(
+          `[responses] table "${tableName}" missing; skipping response counts until it exists`
+        );
+      }
+      return exists;
+    } catch (error) {
+      console.error("[responses] failed checking response count table", error);
+      this.responseCountsTableExists = false;
+      return false;
+    }
+  }
 
   // Example transaction: new driver workflow.
   public async createDriverWithVehicle(payload: {
@@ -284,6 +321,7 @@ export class DriverService {
         activeQrCount: number;
         missingMonthlySubmission: boolean;
         hasInReviewSubmission: boolean;
+        responses: Array<{ year: number; month: number; count: number }>;
       }
     >
   > {
@@ -302,6 +340,7 @@ export class DriverService {
         activeQrCount: number;
         missingMonthlySubmission: boolean;
         hasInReviewSubmission: boolean;
+        responses: Array<{ year: number; month: number; count: number }>;
       }
     > = [];
     for (const driver of drivers) {
@@ -402,12 +441,27 @@ export class DriverService {
           hasInReviewSubmission = true;
         }
       }
+
+      let responses: Array<{ year: number; month: number; count: number }> = [];
+      if (await this.hasResponseCountsTable()) {
+        const responseCounts = await this.models.DriverResponseCount.findAll({
+          where: { driverId: driver.driverId },
+          order: [["year", "DESC"], ["month", "DESC"]],
+        });
+        responses = responseCounts.map((record) => ({
+          year: record.year,
+          month: record.month,
+          count: record.count,
+        }));
+      }
+
       const plainDriver = driver.get({ plain: true }) as Record<string, unknown>;
       results.push({
         ...plainDriver,
         activeQrCount: activeCount,
         missingMonthlySubmission,
         hasInReviewSubmission,
+        responses,
       });
     }
 
@@ -503,6 +557,8 @@ export class DriverService {
       latestOdometer: OdometerReading | null;
       odometerHistory: OdometerReading[];
     }>;
+    responses: Array<{ year: number; month: number; count: number }>;
+    contractFiles: Array<{ fileName: string; fileUrl: string; uploadedAt: Date | null }>;
   }> {
     const driver = await this.models.Driver.findByPk(driverId);
     if (!driver) {
@@ -573,12 +629,37 @@ export class DriverService {
       );
     }
 
+    let responses: Array<{ year: number; month: number; count: number }> = [];
+    if (await this.hasResponseCountsTable()) {
+      const responseCounts = await this.models.DriverResponseCount.findAll({
+        where: { driverId: resolvedDriverId },
+        order: [["year", "DESC"], ["month", "DESC"]],
+      });
+      responses = responseCounts.map((record) => ({
+        year: record.year,
+        month: record.month,
+        count: record.count,
+      }));
+    }
+
+    const contracts = await this.models.DriverContract.findAll({
+      where: { driverId: resolvedDriverId },
+      order: [["signedAt", "DESC"], ["createdAt", "DESC"]],
+    });
+    const contractFiles = contracts.map((contract) => ({
+      fileName: contract.fileName,
+      fileUrl: buildSupabasePublicUrl(contract.storagePath),
+      uploadedAt: contract.signedAt ?? contract.createdAt ?? null,
+    }));
+
     return {
       driver,
       referredBy,
       referredTo,
       payments,
       vehicles: vehicleResults,
+      responses,
+      contractFiles,
     };
   }
 

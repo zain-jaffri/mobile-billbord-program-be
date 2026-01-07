@@ -14,6 +14,15 @@ export type AppConfig = {
   };
   firebase: {
     projectId: string;
+    serviceAccountJson?: string;
+  };
+  email: {
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    from?: string;
+    secure?: boolean;
   };
   docusign: {
     clientId: string;
@@ -24,6 +33,8 @@ export type AppConfig = {
     templateId: string;
     signerRoleName: string;
     privateKey: string;
+    webhookUrl?: string;
+    webhookSecret?: string;
   };
   supabase: {
     url: string;
@@ -54,6 +65,15 @@ export const config: AppConfig = {
   },
   firebase: {
     projectId: required("FIREBASE_PROJECT_ID", process.env.FIREBASE_PROJECT_ID),
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+  },
+  email: {
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined,
+    user: process.env.EMAIL_USER,
+    password: process.env.EMAIL_PASSWORD,
+    from: process.env.EMAIL_FROM,
+    secure: process.env.EMAIL_SECURE === "true",
   },
   docusign: {
     clientId: required("DOCUSIGN_CLIENT_ID", process.env.DOCUSIGN_CLIENT_ID),
@@ -64,6 +84,8 @@ export const config: AppConfig = {
     templateId: required("DOCUSIGN_TEMPLATE_ID", process.env.DOCUSIGN_TEMPLATE_ID),
     signerRoleName: required("DOCUSIGN_SIGNER_ROLE_NAME", process.env.DOCUSIGN_SIGNER_ROLE_NAME),
     privateKey: required("DOCUSIGN_PRIVATE_KEY", process.env.DOCUSIGN_PRIVATE_KEY),
+    webhookUrl: process.env.DOCUSIGN_WEBHOOK_URL,
+    webhookSecret: process.env.DOCUSIGN_WEBHOOK_SECRET,
   },
   supabase: {
     url: required("SUPABASE_URL", process.env.SUPABASE_URL),

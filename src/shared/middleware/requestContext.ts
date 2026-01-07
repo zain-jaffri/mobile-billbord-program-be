@@ -7,7 +7,9 @@ export type RequestWithUser = Request & {
     email?: string;
     role?: "driver" | "fieldWorker" | "admin" | null;
     driverId?: number | null;
+    mustChangePassword?: boolean;
   };
+  rawBody?: Buffer;
 };
 
 // Lightweight user context from headers (swap for real auth later).

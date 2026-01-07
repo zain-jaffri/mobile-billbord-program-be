@@ -27,11 +27,14 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
 
     const firebaseUid = (payload.user_id as string) ?? payload.sub ?? "unknown";
     const email = (payload.email as string | undefined)?.toLowerCase();
+    const mustChangePassword = Boolean(payload.mustChangePassword);
 
     const adminEmails = new Set(["jacob@maximuslaw.com", "maamoonzsalman@gmail.com"]);
+    // const adminEmails = new Set(["maamoonzsalman@gmail.com"]);
     const roleFromEmail = () => {
       if (email && adminEmails.has(email)) return "admin";
-      if (email && email.endsWith("@maximuslaw.com")) return "fieldWorker";
+      // if (email && email.endsWith("@maximuslaw.com")) return "fieldWorker";
+      if (email && email.endsWith("@maximuslaws.com")) return "fieldWorker";
       return "driver";
     };
 
@@ -43,7 +46,9 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
         if (email && profile.email !== email) {
           updates.email = email;
         }
-        if (profile.role !== derivedRole) {
+        const shouldUpdateRole =
+          !profile.role || (derivedRole === "admin" && profile.role !== "admin");
+        if (shouldUpdateRole) {
           updates.role = derivedRole;
         }
         if (Object.keys(updates).length > 0) {
@@ -66,6 +71,7 @@ export const authenticateFirebase = async (req: RequestWithUser, _res: Response,
       email: email ?? undefined,
       role: (profile?.role as "driver" | "fieldWorker" | "admin" | null) ?? derivedRole,
       driverId: profile?.driverId ?? null,
+      mustChangePassword,
     };
 
     if (req.user.role === "driver") {

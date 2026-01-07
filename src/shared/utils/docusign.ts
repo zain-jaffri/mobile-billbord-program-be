@@ -104,19 +104,41 @@ const requestAccessToken = async (): Promise<DocuSignTokenResponse> => {
   return details as DocuSignTokenResponse;
 };
 
-export const sendDocusignEnvelope = async (payload: DocuSignSendEnvelopePayload): Promise<void> => {
+export const getDocusignAccessToken = async (): Promise<string> => {
   const token = await requestAccessToken();
+  return token.access_token;
+};
+
+export const sendDocusignEnvelope = async (payload: DocuSignSendEnvelopePayload): Promise<void> => {
+  const accessToken = await getDocusignAccessToken();
+  const eventNotification = config.docusign.webhookUrl
+    ? {
+        url: config.docusign.webhookUrl,
+        loggingEnabled: "true",
+        requireAcknowledgment: "true",
+        envelopeEvents: [{ envelopeEventStatusCode: "completed" }],
+      }
+    : undefined;
   const res = await fetch(
     `${config.docusign.apiBasePath}/v2.1/accounts/${config.docusign.accountId}/envelopes`,
     {
       method: "POST",
       headers: {
-        authorization: `Bearer ${token.access_token}`,
+        authorization: `Bearer ${accessToken}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({
         templateId: config.docusign.templateId,
         status: "sent",
+        customFields: {
+          textCustomFields: [
+            {
+              name: "driverId",
+              value: String(payload.driverId),
+            },
+          ],
+        },
+        ...(eventNotification ? { eventNotification } : {}),
         templateRoles: [
           {
             roleName: config.docusign.signerRoleName,
@@ -142,4 +164,39 @@ export const sendDocusignEnvelope = async (payload: DocuSignSendEnvelopePayload)
       traceToken: res.headers.get("x-docusign-tracetoken") ?? undefined,
     });
   }
+};
+
+export const downloadCombinedEnvelopeDocument = async (
+  envelopeId: string
+): Promise<{ base64: string; contentType: string }> => {
+  const accessToken = await getDocusignAccessToken();
+  const res = await fetch(
+    `${config.docusign.apiBasePath}/v2.1/accounts/${config.docusign.accountId}/envelopes/${envelopeId}/documents/combined`,
+    {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        accept: "application/pdf",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const details = await parseResponseBody(res);
+    const errorCode =
+      typeof details === "object" && details
+        ? (details as { error?: string; errorCode?: string }).error ||
+          (details as { error?: string; errorCode?: string }).errorCode
+        : undefined;
+    throw new DocuSignError("DocuSign document download failed", {
+      status: res.status,
+      code: errorCode,
+      details,
+      traceToken: res.headers.get("x-docusign-tracetoken") ?? undefined,
+    });
+  }
+
+  const contentType = res.headers.get("content-type") || "application/pdf";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { base64: buffer.toString("base64"), contentType };
 };
