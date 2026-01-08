@@ -1,13 +1,17 @@
 import { Transaction, Op, Sequelize } from "sequelize";
 import { sequelize } from "../../shared/sequelize";
 import { Driver, DriverCreation } from "./driver.model";
-import { Vehicle, VehicleCreation } from "../vehicles/vehicle.model";
-import { Deployment } from "../deployments/deployment.model";
-import { OdometerReading } from "../odometer/odometer.model";
+import { Vehicle, VehicleAttributes, VehicleCreation } from "../vehicles/vehicle.model";
+import { Deployment, DeploymentAttributes } from "../deployments/deployment.model";
+import { OdometerReading, OdometerAttributes } from "../odometer/odometer.model";
 import { FormSubmission } from "../submissions/submission.model";
 import { Payment } from "../payments/payment.model";
+import { QRCode, QRCodeAttributes } from "../qrCodes/qrCode.model";
 import { MonthlySubmission } from "../monthlySubmissions/monthlySubmission.model";
-import { MonthlySubmissionPhoto } from "../monthlySubmissions/monthlySubmissionPhoto.model";
+import {
+  MonthlySubmissionPhoto,
+  SubmissionPhotoType,
+} from "../monthlySubmissions/monthlySubmissionPhoto.model";
 import { DriverResponseCount } from "../responseCounts/driverResponseCount.model";
 import { DriverContract } from "../contracts/driverContract.model";
 import { DeploymentService } from "../deployments/deployment.service";
@@ -15,6 +19,17 @@ import { notFound } from "../../shared/errors";
 import { sendDocusignEnvelope, DocuSignError } from "../../shared/utils/docusign";
 import { getCurrentPeriodStart } from "../../shared/utils/monthlyPeriod";
 import { buildSupabasePublicUrl } from "../../shared/utils/supabaseStorage";
+
+type DeploymentPlain = DeploymentAttributes & {
+  QRCode?: QRCodeAttributes | null;
+  submissions: FormSubmission[];
+};
+
+type VehiclePlain = VehicleAttributes & {
+  deployments: DeploymentPlain[];
+  latestOdometer: OdometerAttributes | null;
+  odometerHistory: OdometerAttributes[];
+};
 
 // Business logic for driver flows and cross-domain orchestration.
 export class DriverService {
@@ -418,9 +433,14 @@ export class DriverService {
       for (const submission of submissions) {
         const submissionPhotos = photosBySubmission.get(submission.submissionId) ?? [];
         const uploadedTypes = new Set(submissionPhotos.map((photo) => photo.photoType));
-        const hasAllPhotos = ["front", "back", "left", "right", "odometer"].every((type) =>
-          uploadedTypes.has(type)
-        );
+        const requiredPhotoTypes: SubmissionPhotoType[] = [
+          "front",
+          "back",
+          "left",
+          "right",
+          "odometer",
+        ];
+        const hasAllPhotos = requiredPhotoTypes.every((type) => uploadedTypes.has(type));
         const hasOdometer = submission.odometerMileage > 0 && Boolean(submission.odometerDate);
         const periodKey = normalizePeriodKey(submission.periodStart);
         submissionsByPeriod.set(periodKey, {
@@ -512,7 +532,7 @@ export class DriverService {
       paidStatus: "unpaid" | "paid";
       photos: Array<{
         photoId: number;
-        photoType: string;
+        photoType: SubmissionPhotoType;
         storagePath: string;
         publicUrl: string;
         uploadedAt: Date | null;
@@ -552,11 +572,7 @@ export class DriverService {
     referredBy: Driver | null;
     referredTo: Driver[];
     payments: Payment[];
-    vehicles: Array<Vehicle & {
-      deployments: Array<Deployment & { submissions: FormSubmission[] }>;
-      latestOdometer: OdometerReading | null;
-      odometerHistory: OdometerReading[];
-    }>;
+    vehicles: VehiclePlain[];
     responses: Array<{ year: number; month: number; count: number }>;
     contractFiles: Array<{ fileName: string; fileUrl: string; uploadedAt: Date | null }>;
   }> {
@@ -586,12 +602,7 @@ export class DriverService {
       where: { driverId: resolvedDriverId },
     });
 
-    const vehicleResults: Array<{
-      deployments: Array<Deployment & { submissions: FormSubmission[] }>;
-      latestOdometer: OdometerReading | null;
-      odometerHistory: OdometerReading[];
-      [key: string]: unknown;
-    }> = [];
+    const vehicleResults: VehiclePlain[] = [];
 
     // Hydrate vehicle details with deployments, submissions, and odometer history.
     for (const vehicle of vehicles) {
@@ -599,9 +610,10 @@ export class DriverService {
       const deployments = await this.models.Deployment.findAll({
         where: { vehicleId },
         order: [["actionDate", "DESC"]],
+        include: [{ model: QRCode }],
       });
 
-      const deploymentResults: Array<Deployment & { submissions: FormSubmission[] }> = [];
+      const deploymentResults: DeploymentPlain[] = [];
       for (const deployment of deployments) {
         const submissions = await this.models.FormSubmission.findAll({
           where: { qrId: deployment.qrId },

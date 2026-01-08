@@ -1,67 +1,92 @@
 import { Request, Response } from "express";
 import { DriverService } from "./driver.service";
+import { conflict } from "../../shared/errors";
 import { RequestWithUser } from "../../shared/middleware/requestContext";
 
 // HTTP layer: translate requests into service calls.
+const inFlightDriverCreates = new Set<string>();
+const ACTIVE_QR_MESSAGE = "QR code is already assigned to another vehicle.";
+
+function isActiveQrAssignmentError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.message.includes("already has an active deployment")) return true;
+  const parent = (error as { parent?: { message?: string } }).parent;
+  return parent?.message?.includes("already has an active deployment") ?? false;
+}
+
 export class DriverController {
   constructor(private readonly driverService: DriverService) {}
 
   public createDriver = async (req: RequestWithUser, res: Response): Promise<void> => {
     const createdBy = req.user?.username ?? null;
+    const guardKey = req.user?.uid ?? createdBy ?? req.ip ?? "unknown";
+    if (inFlightDriverCreates.has(guardKey)) {
+      throw conflict("Driver creation already in progress.");
+    }
+    inFlightDriverCreates.add(guardKey);
     const { body } = req;
 
-    // Map request body into service payloads.
-    const result = await this.driverService.createDriverWithVehicle({
-      driver: {
-        firstName: body.firstName,
-        lastName: body.lastName ?? null,
-        licenseState: body.licenseState ?? null,
-        licenseNumber: body.licenseNumber ?? null,
-        signupDate: body.signupDate,
-        phone: body.phone ?? null,
-        email: body.email ?? null,
-        preferredLanguage: body.preferredLanguage ?? null,
-        address: body.address ?? null,
-        city: body.city ?? null,
-        state: body.state ?? null,
-        zip: body.zip ?? null,
-        notes: body.notes ?? null,
-        referredBy: body.referredBy ?? null,
-        isSignedContract: body.isSignedContract ?? false,
-        isInactive: body.isInactive ?? false,
-        createdBy,
-      },
-      vehicle: {
-        plateNumber: body.vehicle.plateNumber ?? null,
-        state: body.vehicle.state ?? null,
-        make: body.vehicle.make ?? null,
-        model: body.vehicle.model ?? null,
-        year: body.vehicle.year ?? null,
-        vin: body.vehicle.vin ?? null,
-        color: body.vehicle.color ?? null,
-        notes: body.vehicle.notes ?? null,
-        createdBy,
-      },
-      deployment: body.deployment
-        ? {
-            qrId: body.deployment.qrId,
-            actionDate: body.deployment.actionDate,
-            notes: body.deployment.notes ?? null,
-          }
-        : undefined,
-      odometer: body.odometer
-        ? {
-            readingDate: body.odometer.readingDate,
-            mileage: body.odometer.mileage,
-            notes: body.odometer.notes ?? null,
-          }
-        : undefined,
-    });
+    try {
+      // Map request body into service payloads.
+      const result = await this.driverService.createDriverWithVehicle({
+        driver: {
+          firstName: body.firstName,
+          lastName: body.lastName ?? null,
+          licenseState: body.licenseState ?? null,
+          licenseNumber: body.licenseNumber ?? null,
+          signupDate: body.signupDate,
+          phone: body.phone ?? null,
+          email: body.email ?? null,
+          preferredLanguage: body.preferredLanguage ?? null,
+          address: body.address ?? null,
+          city: body.city ?? null,
+          state: body.state ?? null,
+          zip: body.zip ?? null,
+          notes: body.notes ?? null,
+          referredBy: body.referredBy ?? null,
+          isSignedContract: body.isSignedContract ?? false,
+          isInactive: body.isInactive ?? false,
+          createdBy,
+        },
+        vehicle: {
+          plateNumber: body.vehicle.plateNumber ?? null,
+          state: body.vehicle.state ?? null,
+          make: body.vehicle.make ?? null,
+          model: body.vehicle.model ?? null,
+          year: body.vehicle.year ?? null,
+          vin: body.vehicle.vin ?? null,
+          color: body.vehicle.color ?? null,
+          notes: body.vehicle.notes ?? null,
+          createdBy,
+        },
+        deployment: body.deployment
+          ? {
+              qrId: body.deployment.qrId,
+              actionDate: body.deployment.actionDate,
+              notes: body.deployment.notes ?? null,
+            }
+          : undefined,
+        odometer: body.odometer
+          ? {
+              readingDate: body.odometer.readingDate,
+              mileage: body.odometer.mileage,
+              notes: body.odometer.notes ?? null,
+            }
+          : undefined,
+      });
 
-    res.status(201).json({
-      driverId: result.driver.getDataValue("driverId"),
-      vehicleId: result.vehicle.getDataValue("vehicleId"),
-    });
+      res.status(201).json({
+        driverId: result.driver.getDataValue("driverId"),
+        vehicleId: result.vehicle.getDataValue("vehicleId"),
+      });
+    } catch (error: unknown) {
+      if (isActiveQrAssignmentError(error)) {
+        throw conflict(ACTIVE_QR_MESSAGE);
+      }
+      throw error;
+    } finally {
+      inFlightDriverCreates.delete(guardKey);
+    }
   };
 
   public returningDriver = async (req: RequestWithUser, res: Response): Promise<void> => {
