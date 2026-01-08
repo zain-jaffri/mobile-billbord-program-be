@@ -586,10 +586,11 @@ export class DriverService {
       where: { driverId: resolvedDriverId },
     });
 
-    const vehicleResults: Array<Vehicle & {
+    const vehicleResults: Array<{
       deployments: Array<Deployment & { submissions: FormSubmission[] }>;
       latestOdometer: OdometerReading | null;
       odometerHistory: OdometerReading[];
+      [key: string]: unknown;
     }> = [];
 
     // Hydrate vehicle details with deployments, submissions, and odometer history.
@@ -606,7 +607,7 @@ export class DriverService {
           where: { qrId: deployment.qrId },
           order: [["submissionDate", "DESC"]],
         });
-        deploymentResults.push(Object.assign(deployment, { submissions }));
+        deploymentResults.push(Object.assign(deployment.get({ plain: true }), { submissions }));
       }
 
       const latestOdometer = await this.models.OdometerReading.findOne({
@@ -621,10 +622,10 @@ export class DriverService {
       });
 
       vehicleResults.push(
-        Object.assign(vehicle, {
+        Object.assign(vehicle.get({ plain: true }), {
           deployments: deploymentResults,
-          latestOdometer,
-          odometerHistory,
+          latestOdometer: latestOdometer ? latestOdometer.get({ plain: true }) : null,
+          odometerHistory: odometerHistory.map((reading) => reading.get({ plain: true })),
         })
       );
     }
